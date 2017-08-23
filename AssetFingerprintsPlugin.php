@@ -7,71 +7,79 @@ class AssetFingerprintsPlugin extends BasePlugin
   public function init()
   {
     parent::init();
-    //craft()->on('assets.onBeforeSaveAsset', function(Event $event) {
-    craft()->on('assets.onSaveAsset', function(Event $event) {
-      // Only rename if it’s a new asset being saved
-      if($event->params['isNewAsset'])
+
+    craft()->on('assets.onSaveAsset', function(Event $event)
+    {
+      $asset = $event->params['asset'];
+
+      Craft::log("[assetfingerprint] Atttempting to fingerprint: ".$asset->filename, LogLevel::Info, true);
+      
+      if($event->params['isNewAsset']) // New asset
       {
-        $asset = $event->params['asset'];
-        Craft::log("assets.onsaveasset new asset: ".$asset->filename, LogLevel::Error);
-        if(preg_match('/\.\d{10}\..{2,4}$/', $asset->filename)==0) { 
-          Craft::log("assets.onsaveasset [new asset] does NOT have timestamp in filename: ".$asset->filename, LogLevel::Error);
-          $assetPathInfo = pathinfo($asset->filename);
-          Craft::log("filename: ".$assetPathInfo['filename'], LogLevel::Error);
-          $updatedFile = join(".", [$assetPathInfo['filename'], time(), $assetPathInfo['extension']]);
-          Craft::log("Updated filename: ".$updatedFile, LogLevel::Error);
-          $asset->setAttribute('filename', $updatedFile);
-          Craft::log("asset filename after adjustment: ".$asset->filename, LogLevel::Error);
-          craft()->assets->renameFile($asset, $updatedFile);
-          craft()->assets->storeFile($asset);
-          $event->performAction = false;
-          /*
-          $asset = $event->params['asset'];
-          Craft::log("assets.onbeforesaveasset is new asset: ".$asset->filename, LogLevel::Error);
-          $assetPathInfo = pathinfo($asset->filename);
-          Craft::log("filename: ".$assetPathInfo['filename'], LogLevel::Error);
-          $updatedFile = join(".", [$assetPathInfo['filename'], time(), $assetPathInfo['extension']]);
-          Craft::log("Updated filename: ".$updatedFile, LogLevel::Error);
-          $asset->setAttribute('filename', $updatedFile);
-          Craft::log("asset filename after adjustment: ".$asset->filename, LogLevel::Error);
-          //craft()->assets->renameFile($asset, $updatedFile);
-          //craft()->assets->storeFile($asset);
-          $event->performAction = true;
-           */
-        }
-        else {
-          Craft::log("assets.onsaveasset [new asset] has timestamp already in filename: ".$asset->filename, LogLevel::Error);
-        }
-      } else {
-        $asset = $event->params['asset'];
-        Craft::log("assets.onsaveasset NOT new asset: ".$asset->filename, LogLevel::Error);
+        Craft::log("[assetfingerprint] new asset: ".$asset->filename, LogLevel::Info);
+
+        if($this->filenameDoesntHaveFingerprint($asset->filename)) 
+        { 
+          Craft::log("[assetfingerprint] new asset does NOT have timestamp in filename: ".$asset->filename, LogLevel::Info);
         
-        Craft::log($asset->dateModified->getTimestamp(), LogLevel::Error);
-        if(preg_match('/\.\d{10}\..{2,4}$/', $asset->filename)==0) { 
-          Craft::log("assets.onsaveasset [existing asset] filename does NOT have timestamp set!", LogLevel::Error);
-          $assetPathInfo = pathinfo($asset->filename);
-          Craft::log("filename: ".$assetPathInfo['filename'], LogLevel::Error);
-          $updatedFile = join(".", [$assetPathInfo['filename'], $asset->dateModified->getTimestamp(), $assetPathInfo['extension']]);
-          Craft::log("Updated filename: ".$updatedFile, LogLevel::Error);
-          $asset->setAttribute('filename', $updatedFile);
-          Craft::log("asset filename after adjustment: ".$asset->filename, LogLevel::Error);
-          //craft()->assets->renameFile($asset, $updatedFile);
-          craft()->assets->renameFile($asset, $updatedFile);
+          // Generate new filename for new asset, using current time as fingerprint
+          $updatedFilename = $this->newFingerprintFilename($asset->filename, time());
+          Craft::log("[assetfingerprint] new asset filename with timestamp:".$updatedFilename, LogLevel::Info);
+
+          // Set the new filename to the asset and update the files accordingly.
+          $asset->setAttribute('filename', $updatedFilename);
+          craft()->assets->renameFile($asset, $updatedFilename);
           craft()->assets->storeFile($asset);
           $event->performAction = false;
-          //$a = craft()->assets->storeFile($asset);
-          //Craft::log("a: ".$a, LogLevel::Error);
-          //return $asset;
         }
-        else {
-          Craft::log("assets.onsaveasset [existing asset] has timestamp already in filename: ".$asset->filename, LogLevel::Error);
+        else 
+        {
+          Craft::log("[assetfingerprint] new asset already has timestamp in filename: ".$asset->filename, LogLevel::Info, true);
         }
-       
       }
 
-      //Craft::log("Returning because end of mfunction", LogLevel::Error);
+      else // Existing asset
+      {
+        Craft::log("[assetfingerprint] existing asset: ".$asset->filename, LogLevel::Info);
+        
+        if($this->filenameDoesntHaveFingerprint($asset->filename))
+        { 
+          Craft::log("[assetfingerprint] existing asset does NOT have timestamp in filename: ".$asset->filename, LogLevel::Info);
 
+          // Generate new filename for asset, using modified time as fingerprint
+          $updatedFilename = $this->newFingerprintFilename($asset->filename, $asset->dateModified->getTimestamp());
+          Craft::log("[assetfingerprint] existing asset filename with timestamp:".$updatedFilename, LogLevel::Info);
+        
+          // Set the new filename to the asset and update the files accordingly.
+          $asset->setAttribute('filename', $updatedFilename);
+          craft()->assets->renameFile($asset, $updatedFilename);
+          craft()->assets->storeFile($asset);
+          $event->performAction = false;
+        }
+        else 
+        {
+          Craft::log("[assetfingerprint] existing asset already has timestamp in filename: ".$asset->filename, LogLevel::Info, true);
+        }
+      }
     });
+  }
+
+  private function filenameHasFingerprint($filename)
+  {
+    // Check for timestamp in the filename.
+    // E.g. logo.1234567890.png vs. logo.png
+    return preg_match('/\.\d{10}\..{2,4}$/', $filename) != 0;
+  }
+
+  private function filenameDoesntHaveFingerprint($filename)
+  {
+    return $this->filenameHasFingerprint($filename) == false;
+  }
+
+  private function newFingerprintFilename($filename, $timestamp)
+  {
+    $assetPathInfo = pathinfo($filename);
+    return join(".", [$assetPathInfo['filename'], $timestamp, $assetPathInfo['extension']]);
   }
 
   function getName()
@@ -81,7 +89,7 @@ class AssetFingerprintsPlugin extends BasePlugin
 
   function getVersion()
   {
-    return '0.1';
+    return '0.2';
   }
 
   function getDeveloper()
