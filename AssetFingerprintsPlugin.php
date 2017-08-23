@@ -1,4 +1,5 @@
 <?php
+
 namespace Craft;
 
 class AssetFingerprintsPlugin extends BasePlugin
@@ -85,12 +86,17 @@ class AssetFingerprintsPlugin extends BasePlugin
 
   function getDeveloper()
   {
-    return 'Brady Bonnette';
+    return 'The Refinery, LLC';
   }
 
   function getDeveloperUrl()
   {
     return 'http://the-refinery.io/';
+  }
+
+  function getDocumentationUrl()
+  {
+    return 'https://github.com/the-refinery/asset-fingerprint-craft-plugin/blob/master/README.md';
   }
 
   public function getElementRoute(BaseElementModel $element)
