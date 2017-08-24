@@ -29,7 +29,6 @@ class AssetFingerprintsPlugin extends BasePlugin
           // Set the new filename to the asset and update the files accordingly.
           $asset->setAttribute('filename', $updatedFilename);
           craft()->assets->renameFile($asset, $updatedFilename);
-          craft()->assets->storeFile($asset);
           $event->performAction = false;
         }
         else 
@@ -53,7 +52,6 @@ class AssetFingerprintsPlugin extends BasePlugin
           // Set the new filename to the asset and update the files accordingly.
           $asset->setAttribute('filename', $updatedFilename);
           craft()->assets->renameFile($asset, $updatedFilename);
-          craft()->assets->storeFile($asset);
           $event->performAction = false;
         }
         else 
