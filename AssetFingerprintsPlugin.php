@@ -11,53 +11,35 @@ class AssetFingerprintsPlugin extends BasePlugin
     craft()->on('assets.onSaveAsset', function(Event $event)
     {
       $asset = $event->params['asset'];
-
       Craft::log("[assetfingerprint] Atttempting to fingerprint: ".$asset->filename, LogLevel::Info, true);
+
+      $assetStateIndicator = "existing";
+      $assetTimestamp = $asset->dateModified->getTimestamp();
       
       if($event->params['isNewAsset']) // New asset
       {
-        Craft::log("[assetfingerprint] new asset: ".$asset->filename, LogLevel::Info);
-
-        if($this->filenameDoesntHaveFingerprint($asset->filename)) 
-        { 
-          Craft::log("[assetfingerprint] new asset does NOT have timestamp in filename: ".$asset->filename, LogLevel::Info);
-        
-          // Generate new filename for new asset, using current time as fingerprint
-          $updatedFilename = $this->newFingerprintFilename($asset->filename, time());
-          Craft::log("[assetfingerprint] new asset filename with timestamp:".$updatedFilename, LogLevel::Info);
-
-          // Set the new filename to the asset and update the files accordingly.
-          $asset->setAttribute('filename', $updatedFilename);
-          craft()->assets->renameFile($asset, $updatedFilename);
-          $event->performAction = false;
-        }
-        else 
-        {
-          Craft::log("[assetfingerprint] new asset already has timestamp in filename: ".$asset->filename, LogLevel::Info, true);
-        }
+        $assetStateIndicator = "new";
+        $assetTimestamp = time(); 
       }
 
-      else // Existing asset
-      {
-        Craft::log("[assetfingerprint] existing asset: ".$asset->filename, LogLevel::Info);
-        
-        if($this->filenameDoesntHaveFingerprint($asset->filename))
-        { 
-          Craft::log("[assetfingerprint] existing asset does NOT have timestamp in filename: ".$asset->filename, LogLevel::Info);
+      Craft::log("[assetfingerprint] ".$assetStateIndicator." asset: ".$asset->filename, LogLevel::Info);
 
-          // Generate new filename for asset, using modified time as fingerprint
-          $updatedFilename = $this->newFingerprintFilename($asset->filename, $asset->dateModified->getTimestamp());
-          Craft::log("[assetfingerprint] existing asset filename with timestamp:".$updatedFilename, LogLevel::Info);
-        
-          // Set the new filename to the asset and update the files accordingly.
-          $asset->setAttribute('filename', $updatedFilename);
-          craft()->assets->renameFile($asset, $updatedFilename);
-          $event->performAction = false;
-        }
-        else 
-        {
-          Craft::log("[assetfingerprint] existing asset already has timestamp in filename: ".$asset->filename, LogLevel::Info, true);
-        }
+      if($this->filenameHasFingerprint($asset->filename)) 
+      {
+        Craft::log("[assetfingerprint] ".$assetStateIndicator." asset already has timestamp in filename: ".$asset->filename, LogLevel::Info, true);
+      }
+      else 
+      {
+        Craft::log("[assetfingerprint] ".$assetStateIndicator." asset does NOT have timestamp in filename: ".$asset->filename, LogLevel::Info);
+
+        // Generate new filename for new asset, using current time as fingerprint
+        $updatedFilename = $this->newFingerprintFilename($asset->filename, $assetTimestamp);
+        Craft::log("[assetfingerprint] ".$assetStateIndicator." asset filename with timestamp:".$updatedFilename, LogLevel::Info);
+
+        // Set the new filename to the asset and update the files accordingly.
+        $asset->setAttribute('filename', $updatedFilename);
+        craft()->assets->renameFile($asset, $updatedFilename);
+        $event->performAction = false;
       }
     });
   }
@@ -87,7 +69,7 @@ class AssetFingerprintsPlugin extends BasePlugin
 
   function getVersion()
   {
-    return '0.3';
+    return '0.4';
   }
 
   function getDeveloper()
