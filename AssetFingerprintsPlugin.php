@@ -87,7 +87,7 @@ class AssetFingerprintsPlugin extends BasePlugin
 
   function getVersion()
   {
-    return '0.2';
+    return '0.3';
   }
 
   function getDeveloper()
@@ -104,24 +104,5 @@ class AssetFingerprintsPlugin extends BasePlugin
   {
     return 'https://github.com/the-refinery/asset-fingerprint-craft-plugin/blob/master/README.md';
   }
-
-  public function getElementRoute(BaseElementModel $element)
-  {
-   // Craft::log("Get ELement Route: ".$element, LogLevel::Error);
-  }
-
-  public function getResourcePath($path)
-  {
-    //Craft::log("getResourcePath", LogLevel::Error);
-  }
-
-  public function getAssetTableAttributeHtml(AssetFileModel $asset, $attribute)
-  {
-   // Craft::log($asset, LogLevel::Error);
-  }
-
-  public function modifyAssetFilename($filename)
-  {
-  //  Craft::log("modifyAssetFilename", LogLevel::Error);
-  }
 }
+
